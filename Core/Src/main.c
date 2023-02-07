@@ -22,6 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+
+#include "BMI088.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,41 +63,49 @@ static void MX_USB_PCD_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t BMI088_GyroRead8(uint8_t addr, uint8_t *data) {
+//uint8_t BMI088_GyroRead8(uint8_t addr, uint8_t *data) {
+//
+//	uint8_t txBuf[2] = {(addr | 0x80), 0x00};
+//	uint8_t rxBuf[2];
+//
+//	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, 	GPIO_PIN_RESET);
+//	uint8_t status = (HAL_SPI_TransmitReceive(&hspi1, txBuf, rxBuf, 2, HAL_MAX_DELAY) == HAL_OK);
+//	HAL_GPIO_WritePin(GPIOB, 	SPI1_GYRO_NCS_Pin, 	GPIO_PIN_SET);
+//
+//	*data = rxBuf[1];
+//
+//	return status;
+//}
+//
+//uint8_t BMI088_GyroWrite8(uint8_t addr, uint8_t data) {
+//
+//	uint8_t txBuf[2] = {addr, data};
+//
+//	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, GPIO_PIN_RESET);
+//	uint8_t status = (HAL_SPI_Transmit(&hspi1, txBuf, 2, HAL_MAX_DELAY) == HAL_OK);
+//	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, GPIO_PIN_SET);
+//
+//	return status;
+//}
+uint8_t BMP390_Read8(uint8_t addr, uint16_t *data) {
+	uint8_t txBuf[2] = {(addr | 0x80), 0x00};
+	uint8_t rxBuf[2];
 
-	uint8_t txBuf[3] = {(addr | 0x80), 0x00, 0x00};
-	uint8_t rxBuf[3];
+	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_RESET);
+	uint8_t status = (HAL_SPI_TransmitReceive(&hspi1, txBuf, rxBuf, 2, HAL_MAX_DELAY) == HAL_OK);
+	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_SET);
 
-	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, 	GPIO_PIN_RESET);
-	uint8_t status = (HAL_SPI_TransmitReceive(&hspi1, txBuf, rxBuf, 3, HAL_MAX_DELAY) == HAL_OK);
-	HAL_GPIO_WritePin(GPIOB, 	SPI1_GYRO_NCS_Pin, 	GPIO_PIN_SET);
-
-	*data = rxBuf[1];
+	*data = (rxBuf[0] << 8) + rxBuf[1];
 
 	return status;
 }
 
-uint8_t BMI088_AccelRead8(uint8_t addr, uint8_t *data) {
+uint8_t BMP390_Write8(uint8_t addr, uint8_t data) {
+	uint8_t txBuf[2] = {(addr | 0x80), data};
 
-	uint8_t txBuf[3] = {(addr | 0x80), 0x00, 0x00};
-	uint8_t rxBuf[3];
-
-	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, GPIO_PIN_RESET);
-	uint8_t status = (HAL_SPI_TransmitReceive(&hspi1, txBuf, rxBuf, 3, HAL_MAX_DELAY) == HAL_OK);
-	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, GPIO_PIN_SET);
-
-	*data = rxBuf[2];
-
-	return status;
-}
-
-uint8_t BMI088_GyroWrite8(uint8_t addr, uint8_t data) {
-
-	uint8_t txBuf[2] = {addr, data};
-
-	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_RESET);
 	uint8_t status = (HAL_SPI_Transmit(&hspi1, txBuf, 2, HAL_MAX_DELAY) == HAL_OK);
-	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_SET);
 
 	return status;
 }
@@ -134,16 +144,13 @@ int main(void)
   MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
   // Set all NCS pins high
-  HAL_GPIO_WritePin(SPI1_ACCEL_NCS_GPIO_Port,	SPI1_ACCEL_NCS_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(SPI1_GYRO_NCS_GPIO_Port, 	SPI1_GYRO_NCS_Pin, 	GPIO_PIN_SET);
-  HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, 	SPI1_BARO_NCS_Pin, 	GPIO_PIN_SET);
-  HAL_GPIO_WritePin(SPI1_FLASH_NCS_GPIO_Port, 	SPI1_FLASH_NCS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SPI1_FLASH_NCS_GPIO_Port, SPI1_FLASH_NCS_Pin, GPIO_PIN_SET);
 
-  // LED PWM Timer
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
-
-  // LED brightness
-  uint8_t intensity = 0;
+  // LED set high
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
   /* USER CODE END 2 */
 
@@ -151,20 +158,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  // LED PWM Timer Channel
-	  htim3.Instance->CCR2 = intensity;
+	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 
-	  // Increase brightness
-	  intensity += 5;
-
-	  // Reset brightness
-	  if (intensity > 100) {
-		  intensity = 0;
-	  }
-
-	  uint8_t data;
-	  BMI088_GyroRead8(0x00, &data);
-	  printf("%u\n", data);
+	  uint16_t data;
+//	  BMI088_GyroRead8(0x00, &data);
+	  BMP390_Read8(0x00, &data);
+	  printf("0x%2x\n", data);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -273,7 +272,6 @@ static void MX_TIM3_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
@@ -293,28 +291,15 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
-  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -367,10 +352,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, SPI1_ACCEL_NCS_Pin|SPI1_GYRO_NCS_Pin|SPI1_BARO_NCS_Pin|SPI1_FLASH_NCS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, SPI1_ACCEL_NCS_Pin|SPI1_GYRO_NCS_Pin|SPI1_BARO_NCS_Pin|SPI1_FLASH_NCS_Pin
+                          |LED_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : SPI1_ACCEL_NCS_Pin SPI1_GYRO_NCS_Pin SPI1_BARO_NCS_Pin SPI1_FLASH_NCS_Pin */
-  GPIO_InitStruct.Pin = SPI1_ACCEL_NCS_Pin|SPI1_GYRO_NCS_Pin|SPI1_BARO_NCS_Pin|SPI1_FLASH_NCS_Pin;
+  /*Configure GPIO pins : SPI1_ACCEL_NCS_Pin SPI1_GYRO_NCS_Pin SPI1_BARO_NCS_Pin SPI1_FLASH_NCS_Pin
+                           LED_Pin */
+  GPIO_InitStruct.Pin = SPI1_ACCEL_NCS_Pin|SPI1_GYRO_NCS_Pin|SPI1_BARO_NCS_Pin|SPI1_FLASH_NCS_Pin
+                          |LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
