@@ -48,7 +48,7 @@ TIM_HandleTypeDef htim3;
 PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
-
+BMI088 imu;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
