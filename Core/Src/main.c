@@ -48,7 +48,7 @@ TIM_HandleTypeDef htim3;
 PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
-
+BMI088 imu;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,52 +63,7 @@ static void MX_USB_PCD_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//uint8_t BMI088_GyroRead8(uint8_t addr, uint8_t *data) {
-//
-//	uint8_t txBuf[2] = {(addr | 0x80), 0x00};
-//	uint8_t rxBuf[2];
-//
-//	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, 	GPIO_PIN_RESET);
-//	uint8_t status = (HAL_SPI_TransmitReceive(&hspi1, txBuf, rxBuf, 2, HAL_MAX_DELAY) == HAL_OK);
-//	HAL_GPIO_WritePin(GPIOB, 	SPI1_GYRO_NCS_Pin, 	GPIO_PIN_SET);
-//
-//	*data = rxBuf[1];
-//
-//	return status;
-//}
-//
-//uint8_t BMI088_GyroWrite8(uint8_t addr, uint8_t data) {
-//
-//	uint8_t txBuf[2] = {addr, data};
-//
-//	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, GPIO_PIN_RESET);
-//	uint8_t status = (HAL_SPI_Transmit(&hspi1, txBuf, 2, HAL_MAX_DELAY) == HAL_OK);
-//	HAL_GPIO_WritePin(GPIOB, SPI1_GYRO_NCS_Pin, GPIO_PIN_SET);
-//
-//	return status;
-//}
-uint8_t BMP390_Read8(uint8_t addr, uint16_t *data) {
-	uint8_t txBuf[2] = {(addr | 0x80), 0x00};
-	uint8_t rxBuf[2];
 
-	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_RESET);
-	uint8_t status = (HAL_SPI_TransmitReceive(&hspi1, txBuf, rxBuf, 2, HAL_MAX_DELAY) == HAL_OK);
-	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_SET);
-
-	*data = (rxBuf[0] << 8) + rxBuf[1];
-
-	return status;
-}
-
-uint8_t BMP390_Write8(uint8_t addr, uint8_t data) {
-	uint8_t txBuf[2] = {(addr | 0x80), data};
-
-	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_RESET);
-	uint8_t status = (HAL_SPI_Transmit(&hspi1, txBuf, 2, HAL_MAX_DELAY) == HAL_OK);
-	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_SET);
-
-	return status;
-}
 /* USER CODE END 0 */
 
 /**
@@ -152,6 +107,7 @@ int main(void)
   // LED set high
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
+  BMI088_Init(&imu, &hspi1, SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -160,10 +116,11 @@ int main(void)
   {
 	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 
-	  uint16_t data;
+	  BMI088_ReadAccelerometer(&imu);
+	  BMI088_ReadGyroscope(&imu);
+
 //	  BMI088_GyroRead8(0x00, &data);
-	  BMP390_Read8(0x00, &data);
-	  printf("0x%2x\n", data);
+	  printf("%f\t%f\t%f\t%f\t%f\t%f\n", imu.acc_mps2[0], imu.acc_mps2[1], imu.acc_mps2[2], imu.gyr_rps[0], imu.gyr_rps[1], imu.gyr_rps[2]);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -208,11 +165,11 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
