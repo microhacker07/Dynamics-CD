@@ -1,7 +1,10 @@
-#ifndef BMI088_IMU_H
-#define BMI088_IMU_H
+#ifndef BMP390_IMU_H
+#define BMP390_IMU_H
 
 #include "stm32g4xx_hal.h"
+
+// Chip id from datasheet
+#define BMP_DEFAULT_CHIP_ID		0x60
 
 /* Register defines
  * Starts on page 33 of BMP 390 data sheet
@@ -39,7 +42,7 @@ typedef struct {
 	/* SPI */
 	SPI_HandleTypeDef *spiHandle;
 	GPIO_TypeDef 	  *csPinBank;
-	uint16_t 		   cspin;
+	uint16_t 		   csPin;
 
 	/* DMA */
 	uint8_t reading;
@@ -78,7 +81,7 @@ uint8_t BMP390_WriteRegister(BMP390 *baro, uint8_t regAddr, uint8_t data);
  * POLLING
  *
  */
-uint8_t BMP390_Read(BMI088 *imu);
+uint8_t BMP390_Read(BMP390 *baro);
 
 /*
  *
