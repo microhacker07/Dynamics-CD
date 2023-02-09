@@ -11,22 +11,14 @@
 #define BMP_ERR_REG				0x02
 #define BMP_STATUS				0x03
 
-#define BMP_PRESSURE_0			0x04
-#define BMP_PRESSURE_1			0x05
-#define BMP_PRESSURE_2			0x06
+#define BMP_PRESSURE			0x04 // 24 bits (need to send 1 address bit + 3 dummy bits)
+#define BMP_TEMPERATURE			0x07 // 24 bits (need to send 1 address bit + 3 dummy bits)
 
-#define BMP_TEMPERATURE_0		0x07
-#define BMP_TEMPERATURE_1		0x08
-#define BMP_TEMPERATURE_2		0x09
-
-#define BMP_SENSORTIME_0			0x0C
-#define BMP_SENSORTIME_1			0x0D
-#define BMP_SENSORTIME_2			0x0E
+#define BMP_SENSORTIME			0x0C // 24 bits (need to send 1 address bit + 3 dummy bits)
 
 #define BMP_EVENT				0x10
 #define BMP_INT_STATUS			0x11
-#define BMP_FIFO_LENGTH_0		0x12
-#define BMP_FIFO_LENGTH_1		0x13
+#define BMP_FIFO_LENGTH			0x12 // 16 bits
 #define BMP_FIFO_DATA			0x14
 #define BMP_FIFO_WTM_0	0x15
 #define BMP_FIFO_WTM_1	0x16
@@ -51,10 +43,10 @@ typedef struct {
 
 	/* DMA */
 	uint8_t reading;
-	uint8_t TxBuf[8];
-	volatile uint8_t RxBuf[8];
+	uint8_t TxBuf[7];
+	volatile uint8_t RxBuf[7];
 
-	/* Conversion constants (raw to m/s^2 and raw to rad/s) */
+	/* Conversion constants (raw to p) */
 	float pressConversion;
 
 	/* Pressure, Temperature, and Altitude*/

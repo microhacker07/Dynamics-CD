@@ -5,28 +5,24 @@
  *      Author: Nathaniel Bock
  */
 
-#include "BMI088.h"
+#include "BMP390.h"
 
 /*
  *
  * INITIALISATION
  *
  */
-uint8_t BMI088_Init(BMI088 *imu,
+uint8_t BMP390_Init(BMP390 *baro,
 				 SPI_HandleTypeDef *spiHandle,
-				 GPIO_TypeDef *csAccPinBank, uint16_t csAccPin,
-				 GPIO_TypeDef *csGyrPinBank, uint16_t csGyrPin) {
+				 GPIO_TypeDef *csPinBank, uint16_t csPin) {
 
 	/* Store interface parameters in struct */
-	imu->spiHandle 		= spiHandle;
-	imu->csAccPinBank 	= csAccPinBank;
-	imu->csAccPin 		= csAccPin;
-	imu->csGyrPinBank 	= csGyrPinBank;
-	imu->csGyrPin 		= csGyrPin;
+	baro->spiHandle 		= spiHandle;
+	baro->csAccPinBank 	= csPinBank;
+	baro->csAccPin 		= csPin;
 
 	/* Clear DMA flags */
-	imu->readingAcc = 0;
-	imu->readingGyr = 0;
+	baro->reading = 0;
 
 	uint8_t status = 0;
 
@@ -35,12 +31,6 @@ uint8_t BMI088_Init(BMI088 *imu,
 	 * ACCELEROMETER
 	 *
 	 */
-
-	/* Accelerometer requires rising edge on CSB at start-up to activate SPI */
-	HAL_GPIO_WritePin(imu->csAccPinBank, imu->csAccPin, GPIO_PIN_RESET);
-	HAL_Delay(1);
-	HAL_GPIO_WritePin(imu->csAccPinBank, imu->csAccPin, GPIO_PIN_SET);
-	HAL_Delay(50);
 
 	/* Perform accelerometer soft reset */
 	status += BMI088_WriteAccRegister(imu, BMI_ACC_SOFTRESET, 0xB6);
@@ -141,7 +131,7 @@ uint8_t BMI088_Init(BMI088 *imu,
  */
 
 /* ACCELEROMETER READS ARE DIFFERENT TO GYROSCOPE READS. SEND ONE BYTE ADDRESS, READ ONE DUMMY BYTE, READ TRUE DATA !!! */
-uint8_t BMI088_ReadAccRegister(BMI088 *imu, uint8_t regAddr, uint8_t *data) {
+uint8_t BMP390_ReadRegister(BMI088 *imu, uint8_t regAddr, uint8_t *data) {
 
 	uint8_t txBuf[3] = {regAddr | 0x80, 0x00, 0x00};
 	uint8_t rxBuf[3];
@@ -160,26 +150,7 @@ uint8_t BMI088_ReadAccRegister(BMI088 *imu, uint8_t regAddr, uint8_t *data) {
 
 }
 
-uint8_t BMI088_ReadGyrRegister(BMI088 *imu, uint8_t regAddr, uint8_t *data) {
-
-	uint8_t txBuf[2] = {regAddr | 0x80, 0x00};
-	uint8_t rxBuf[2];
-
-	HAL_GPIO_WritePin(imu->csGyrPinBank, imu->csGyrPin, GPIO_PIN_RESET);
-	uint8_t status = (HAL_SPI_TransmitReceive(imu->spiHandle, txBuf, rxBuf, 2, HAL_MAX_DELAY) == HAL_OK);
-	HAL_GPIO_WritePin(imu->csGyrPinBank, imu->csGyrPin, GPIO_PIN_SET);
-
-	if (status == 1) {
-
-		*data = rxBuf[1];
-
-	}
-
-	return status;
-
-}
-
-uint8_t BMI088_WriteAccRegister(BMI088 *imu, uint8_t regAddr, uint8_t data) {
+uint8_t BMI088_WriteRegister(BMI088 *imu, uint8_t regAddr, uint8_t data) {
 
 	uint8_t txBuf[2] = {regAddr, data};
 
@@ -187,19 +158,6 @@ uint8_t BMI088_WriteAccRegister(BMI088 *imu, uint8_t regAddr, uint8_t data) {
 	uint8_t status = (HAL_SPI_Transmit(imu->spiHandle, txBuf, 2, HAL_MAX_DELAY) == HAL_OK);
 	while(HAL_SPI_GetState(imu->spiHandle) != HAL_SPI_STATE_READY);
 	HAL_GPIO_WritePin(imu->csAccPinBank, imu->csAccPin, GPIO_PIN_SET);
-
-	return status;
-
-}
-
-uint8_t BMI088_WriteGyrRegister(BMI088 *imu, uint8_t regAddr, uint8_t data) {
-
-	uint8_t txBuf[2] = {regAddr, data};
-
-	HAL_GPIO_WritePin(imu->csGyrPinBank, imu->csGyrPin, GPIO_PIN_RESET);
-	uint8_t status = (HAL_SPI_Transmit(imu->spiHandle, txBuf, 2, HAL_MAX_DELAY) == HAL_OK);
-	while(HAL_SPI_GetState(imu->spiHandle) != HAL_SPI_STATE_READY);
-	HAL_GPIO_WritePin(imu->csGyrPinBank, imu->csGyrPin, GPIO_PIN_SET);
 
 	return status;
 
@@ -212,18 +170,18 @@ uint8_t BMI088_WriteGyrRegister(BMI088 *imu, uint8_t regAddr, uint8_t data) {
  * POLLING
  *
  */
-uint8_t BMI088_ReadAccelerometer(BMI088 *imu) {
+uint8_t BMP390_Read(BMI088 *imu) {
 
-	/* Read raw accelerometer data */
-	uint8_t txBuf[8] = {(BMI_ACC_DATA | 0x80), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; /* Register addr, 1 byte dummy, 6 bytes data */
-	uint8_t rxBuf[8];
+	/* Read raw barometer data */
+	uint8_t txBuf[7] = {(BMP_PRESSURE | 0x80), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; /* Register addr, 1 byte dummy, 6 bytes data */
+	uint8_t rxBuf[7];
 
 	HAL_GPIO_WritePin(imu->csAccPinBank, imu->csAccPin, GPIO_PIN_RESET);
 	uint8_t status = (HAL_SPI_TransmitReceive(imu->spiHandle, txBuf, rxBuf, 8, HAL_MAX_DELAY) == HAL_OK);
 	HAL_GPIO_WritePin(imu->csAccPinBank, imu->csAccPin, GPIO_PIN_SET);
 
 	/* Form signed 16-bit integers */
-	int16_t accX = (int16_t) ((rxBuf[3] << 8) | rxBuf[2]);
+	int32_t press_raw = (int32_t) ((rxBuf[3] << 8) | rxBuf[2]);
 	int16_t accY = (int16_t) ((rxBuf[5] << 8) | rxBuf[4]);
 	int16_t accZ = (int16_t) ((rxBuf[7] << 8) | rxBuf[6]);
 
