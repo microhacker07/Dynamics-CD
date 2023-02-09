@@ -128,7 +128,6 @@ uint8_t BMP390_Init(BMP390 *baro,
  *
  */
 
-/* ACCELEROMETER READS ARE DIFFERENT TO GYROSCOPE READS. SEND ONE BYTE ADDRESS, READ ONE DUMMY BYTE, READ TRUE DATA !!! */
 uint8_t BMP390_ReadRegister(BMP390 *baro, uint8_t regAddr, uint8_t *data) {
 
 	uint8_t txBuf[2] = {regAddr | 0x80, 0x00};
