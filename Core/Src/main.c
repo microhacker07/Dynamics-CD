@@ -24,6 +24,7 @@
 #include <stdio.h>
 
 #include "BMI088.h"
+#include "BMP390.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,6 +52,7 @@ PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
 BMI088 imu;
+BMP390 baro;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -112,6 +114,7 @@ int main(void)
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
   BMI088_Init(&imu, &hspi1, SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin);
+  BMP390_Init(&baro, &hspi1, SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin);
   /* USER CODE END 2 */
 
   /* Infinite loop */
