@@ -57,13 +57,6 @@ uint8_t BMI088_Init(BMI088 *imu,
 	status += BMI088_WriteAccRegister(imu, BMI_ACC_RANGE, 0x00); /* +- 3g range */
 	HAL_Delay(10);
 
-	/* Enable accelerometer data ready interrupt */
-	status += BMI088_WriteAccRegister(imu, BMI_INT1_IO_CONF, 0x0A); /* INT1 = push-pull output, active high */
-	HAL_Delay(10);
-
-	status += BMI088_WriteAccRegister(imu, BMI_INT1_INT2_MAP_DATA, 0x04);
-	HAL_Delay(10);
-
 	/* Put accelerometer into active mode */
 	status += BMI088_WriteAccRegister(imu, BMI_ACC_PWR_CONF, 0x00);
 	HAL_Delay(10);
@@ -105,16 +98,6 @@ uint8_t BMI088_Init(BMI088 *imu,
 	HAL_Delay(10);
 
 	status += BMI088_WriteGyrRegister(imu, BMI_GYR_BANDWIDTH, 0x07); /* ODR = 100 Hz, Filter bandwidth = 32 Hz */
-	HAL_Delay(10);
-
-	/* Enable gyroscope data ready interrupt */
-	status += BMI088_WriteGyrRegister(imu, BMI_GYR_INT_CTRL, 0x80); /* New data interrupt enabled */
-	HAL_Delay(10);
-
-	status += BMI088_WriteGyrRegister(imu, BMI_INT3_INT4_IO_CONF, 0x01); /* INT3 = push-pull, active high */
-	HAL_Delay(10);
-
-	status += BMI088_WriteGyrRegister(imu, BMI_INT3_INT4_IO_MAP, 0x01); /* Data ready interrupt mapped to INT3 pin */
 	HAL_Delay(10);
 
 	/* Pre-compute gyroscope conversion constant (raw to rad/s) */
