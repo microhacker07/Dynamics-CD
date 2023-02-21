@@ -392,9 +392,79 @@ struct LogMessage {
 	uint32_t time_ms;
 	float accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
 	uint8_t checksum;
-};
+} LogMessage;
 
-LogMessage temp;
+// Number of log messages per sector
+#define LOGS_PER_SECTOR 	127
+#define SECTORS_PER_FLIGHT 	63
+#define MAX_FLIGHT_RECORDED 16
+struct LogMessage logs[LOGS_PER_SECTOR];
+uint8_t log_index = 0;
+uint8_t sector_sel = 0;
+uint8_t flight = 0;
+
+uint8_t flag_fullSectors = 0;
+
+void LogRead() {
+	for (int i = 0; i < MAX_FLIGHT_RECORDED; i++) {
+		for (int j = 0; j < SECTORS_PER_FLIGHT; j++) {
+			uint32_t sector_i = 1 + i * SECTORS_PER_FLIGHT + j;
+
+			W25qxx_ReadSector((uint8_t *)logs, sector_i, 0, sizeof(logs));
+
+			for (int k = 0; k < LOGS_PER_SECTOR; k++) {
+				uint8_t check = calc_checksum((uint8_t *)(&logs[k]), sizeof(LogMessage) - 4);
+				if ((logs[k].checksum) != check) {
+//					printf("%u != %u | Checksum doesn't match\n", logs[k].checksum, check);
+					k = LOGS_PER_SECTOR;
+					j = SECTORS_PER_FLIGHT;
+				}
+
+				printf("%lu, %f, %f, %f, %f, %f, %f, %u\n",
+						logs[k].time_ms,
+						logs[k].accel_x,
+						logs[k].accel_y,
+						logs[k].accel_z,
+						logs[k].gyro_x,
+						logs[k].gyro_y,
+						logs[k].gyro_z,
+						logs[k].checksum
+				);
+			}
+			printf("---\n");
+		}
+	}
+}
+
+void LogWrite() {
+	if (flag_fullSectors != 1) {
+		uint32_t sector_i = 1 + flight * SECTORS_PER_FLIGHT + sector_sel;
+
+		W25qxx_WriteSector((uint8_t *)logs, sector_i, 0, sizeof(logs));
+		sector_sel++;
+		if (sector_sel >=  SECTORS_PER_FLIGHT) {
+			flag_fullSectors = 1;
+		}
+	}
+}
+
+void LogData(
+		float accel_x, float accel_y, float accel_z, float gyro_x, float gyro_y, float gyro_z) {
+	if (log_index >= 127) {
+		printf("Writing to Flash!!\n");
+		LogWrite();
+		log_index = 0;
+	}
+	logs[log_index].time_ms = HAL_GetTick();
+	logs[log_index].accel_x = accel_x;
+	logs[log_index].accel_y = accel_y;
+	logs[log_index].accel_z = accel_z;
+	logs[log_index].gyro_x = gyro_x;
+	logs[log_index].gyro_y = gyro_y;
+	logs[log_index].gyro_z = gyro_z;
+	logs[log_index].checksum = calc_checksum((uint8_t *)(&logs[log_index]), sizeof(LogMessage) - 4);
+	log_index++;
+}
 
 void setup() {
 
@@ -409,16 +479,17 @@ void setup() {
 
 	BMI088_Init(&imu, &hspi1, SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin);
 
-	uint8_t flight = 0;
 //	uint8_t buffer2[8];
 
 	W25qxx_Init();
-	W25qxx_ReadSector(flight, 0, 0, 1);
+	W25qxx_ReadSector(&flight, 0, 0, 1);
 
-	flight = (flight + 1) % 8;
+	flight = (flight + 1) % 16;
 
 	W25qxx_EraseSector(0);
-	W25qxx_WriteSector(flight, 0, 0, 1);
+	W25qxx_WriteSector(&flight, 0, 0, 1);
+
+	LogRead();
 
 	HAL_Delay(5 * 1000);
 }
@@ -432,24 +503,32 @@ void blinkLED() {
 	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 }
 
+uint32_t LEDperiod = 200;
+
 void loop() {
 	uint32_t ms = HAL_GetTick();
 	static uint32_t updateBMItime = 0;
 	static uint32_t updateLEDtime = 0;
-	static uint32_t counter = 0;
-	static uint32_t counter2 = 0;
 
 	if (ms > updateBMItime) {
 		updateBMI();
-		updateBMItime = ms + 100;
+		LogData(
+				imu.acc_mps2[0], imu.acc_mps2[1], imu.acc_mps2[2],
+				imu.gyr_rps[0], imu.gyr_rps[1], imu.gyr_rps[2]
+		);
+		updateBMItime = ms + 50;
 	}
 	if (ms > updateLEDtime) {
 		blinkLED();
-		updateLEDtime = ms + 200;
+		updateLEDtime = ms + LEDperiod;
+	}
+
+	if (flag_fullSectors == 1) {
+		LEDperiod = 2000;
 	}
 
 //	printf("%f\t%f\t%f\t%f\t%f\t%f\n", imu.acc_mps2[0], imu.acc_mps2[1], imu.acc_mps2[2], imu.gyr_rps[0], imu.gyr_rps[1], imu.gyr_rps[2]);
-	HAL_Delay(100);
+	HAL_Delay(1);
 }
 /* USER CODE END 4 */
 
