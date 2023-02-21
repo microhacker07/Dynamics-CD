@@ -414,22 +414,22 @@ void LogRead() {
 
 			for (int k = 0; k < LOGS_PER_SECTOR; k++) {
 				uint8_t check = calc_checksum((uint8_t *)(&logs[k]), sizeof(LogMessage) - 4);
-				if ((logs[k].checksum) != check) {
+				if ((logs[k].checksum) == check) {
+					printf("%lu, %f, %f, %f, %f, %f, %f, %u\n",
+							logs[k].time_ms,
+							logs[k].accel_x,
+							logs[k].accel_y,
+							logs[k].accel_z,
+							logs[k].gyro_x,
+							logs[k].gyro_y,
+							logs[k].gyro_z,
+							logs[k].checksum
+					);
+				} else {
 //					printf("%u != %u | Checksum doesn't match\n", logs[k].checksum, check);
 					k = LOGS_PER_SECTOR;
 					j = SECTORS_PER_FLIGHT;
 				}
-
-				printf("%lu, %f, %f, %f, %f, %f, %f, %u\n",
-						logs[k].time_ms,
-						logs[k].accel_x,
-						logs[k].accel_y,
-						logs[k].accel_z,
-						logs[k].gyro_x,
-						logs[k].gyro_y,
-						logs[k].gyro_z,
-						logs[k].checksum
-				);
 			}
 			printf("---\n");
 		}
@@ -449,13 +449,13 @@ void LogWrite() {
 }
 
 void LogData(
-		float accel_x, float accel_y, float accel_z, float gyro_x, float gyro_y, float gyro_z) {
+		uint32_t millis, float accel_x, float accel_y, float accel_z, float gyro_x, float gyro_y, float gyro_z) {
 	if (log_index >= 127) {
 		printf("Writing to Flash!!\n");
 		LogWrite();
 		log_index = 0;
 	}
-	logs[log_index].time_ms = HAL_GetTick();
+	logs[log_index].time_ms = millis;
 	logs[log_index].accel_x = accel_x;
 	logs[log_index].accel_y = accel_y;
 	logs[log_index].accel_z = accel_z;
@@ -512,7 +512,7 @@ void loop() {
 
 	if (ms > updateBMItime) {
 		updateBMI();
-		LogData(
+		LogData(ms,
 				imu.acc_mps2[0], imu.acc_mps2[1], imu.acc_mps2[2],
 				imu.gyr_rps[0], imu.gyr_rps[1], imu.gyr_rps[2]
 		);
