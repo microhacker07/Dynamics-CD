@@ -114,9 +114,9 @@ int main(void)
   while (1)
   {
 	  loop();
-	  /* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-	  /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -333,6 +333,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PB8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -415,24 +421,24 @@ void LogRead() {
 			for (int k = 0; k < LOGS_PER_SECTOR; k++) {
 				uint8_t check = calc_checksum((uint8_t *)(&logs[k]), sizeof(LogMessage) - 4);
 				if ((logs[k].checksum) == check) {
-					printf("%lu, %f, %f, %f, %f, %f, %f, %u\n",
+					printf("%lu, %f, %f, %f, %f, %f, %f\n",
 							logs[k].time_ms,
 							logs[k].accel_x,
 							logs[k].accel_y,
 							logs[k].accel_z,
 							logs[k].gyro_x,
 							logs[k].gyro_y,
-							logs[k].gyro_z,
-							logs[k].checksum
+							logs[k].gyro_z
 					);
+					HAL_Delay(5);
 				} else {
 //					printf("%u != %u | Checksum doesn't match\n", logs[k].checksum, check);
 					k = LOGS_PER_SECTOR;
 					j = SECTORS_PER_FLIGHT;
 				}
 			}
-			printf("---\n");
 		}
+		printf("---\n");
 	}
 }
 
@@ -450,9 +456,15 @@ void LogWrite() {
 
 void LogData(
 		uint32_t millis, float accel_x, float accel_y, float accel_z, float gyro_x, float gyro_y, float gyro_z) {
+	static uint32_t lastWrite = 0;
 	if (log_index >= 127) {
 		printf("Writing to Flash!!\n");
+		uint32_t startWrite = HAL_GetTick();
 		LogWrite();
+		uint32_t endWrite = HAL_GetTick();
+		printf("WriteSector Time: %lu\n", endWrite - startWrite);
+		printf("Time Between Writes: %lu\n", startWrite - lastWrite);
+		lastWrite = HAL_GetTick();
 		log_index = 0;
 	}
 	logs[log_index].time_ms = millis;
@@ -464,6 +476,12 @@ void LogData(
 	logs[log_index].gyro_z = gyro_z;
 	logs[log_index].checksum = calc_checksum((uint8_t *)(&logs[log_index]), sizeof(LogMessage) - 4);
 	log_index++;
+}
+
+void FlashWipe() {
+	for (int i = 0; i < 1024; i++) {
+		W25qxx_EraseSector(i);
+	}
 }
 
 void setup() {
@@ -478,20 +496,21 @@ void setup() {
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
 	BMI088_Init(&imu, &hspi1, SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin);
-
-//	uint8_t buffer2[8];
-
 	W25qxx_Init();
-	W25qxx_ReadSector(&flight, 0, 0, 1);
-
-	flight = (flight + 1) % 16;
-
-	W25qxx_EraseSector(0);
-	W25qxx_WriteSector(&flight, 0, 0, 1);
-
-	LogRead();
 
 	HAL_Delay(5 * 1000);
+
+	if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_8) == GPIO_PIN_SET) {
+//		FlashWipe();
+	} else {
+		W25qxx_ReadSector(&flight, 0, 0, 1);
+
+		flight = (flight + 1) % 16;
+
+		W25qxx_EraseSector(0);
+		W25qxx_WriteSector(&flight, 0, 0, 1);
+	}
+	LogRead();
 }
 
 void updateBMI() {
