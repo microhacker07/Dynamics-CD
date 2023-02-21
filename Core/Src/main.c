@@ -24,7 +24,8 @@
 #include <stdio.h>
 
 #include "BMI088.h"
-#include "BMP390.h"
+//#include "BMP390.h"
+#include "w25qxx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,7 +53,7 @@ PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
 BMI088 imu;
-BMP390 baro;
+//BMP390 baro;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,7 +64,8 @@ static void MX_SPI1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USB_PCD_Init(void);
 /* USER CODE BEGIN PFP */
-
+void setup(void);
+void loop(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -104,34 +106,17 @@ int main(void)
   MX_TIM3_Init();
   MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
-  // Set all NCS pins high
-  HAL_GPIO_WritePin(SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(SPI1_FLASH_NCS_GPIO_Port, SPI1_FLASH_NCS_Pin, GPIO_PIN_SET);
-
-  // LED set high
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-
-  BMI088_Init(&imu, &hspi1, SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin);
-  BMP390_Init(&baro, &hspi1, SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin);
+  setup();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	  loop();
+	  /* USER CODE END WHILE */
 
-	  BMI088_ReadAccelerometer(&imu);
-	  BMI088_ReadGyroscope(&imu);
-
-//	  BMI088_GyroRead8(0x00, &data);
-	  printf("%f\t%f\t%f\t%f\t%f\t%f\n", imu.acc_mps2[0], imu.acc_mps2[1], imu.acc_mps2[2], imu.gyr_rps[0], imu.gyr_rps[1], imu.gyr_rps[2]);
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-	  HAL_Delay(100);
+	  /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -357,6 +342,38 @@ int _write(int file, char *ptr, int len) {
     ITM_SendChar(*ptr++);
   }
   return len;
+}
+
+void setup() {
+	// Set all NCS pins high
+	HAL_GPIO_WritePin(SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SPI1_BARO_NCS_GPIO_Port, SPI1_BARO_NCS_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SPI1_FLASH_NCS_GPIO_Port, SPI1_FLASH_NCS_Pin, GPIO_PIN_SET);
+
+	// LED set high
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+
+	BMI088_Init(&imu, &hspi1, SPI1_ACCEL_NCS_GPIO_Port, SPI1_ACCEL_NCS_Pin, SPI1_GYRO_NCS_GPIO_Port, SPI1_GYRO_NCS_Pin);
+
+	uint8_t buffer1[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+	uint8_t buffer2[8];
+
+	W25qxx_Init();
+	W25qxx_EraseSector(0);
+	W25qxx_WriteSector(buffer1, 0, 0, 8);
+	W25qxx_ReadSector(buffer2, 0, 0, 8);
+}
+
+void loop() {
+	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
+	BMI088_ReadAccelerometer(&imu);
+	BMI088_ReadGyroscope(&imu);
+
+	//	  BMI088_GyroRead8(0x00, &data);
+	printf("%f\t%f\t%f\t%f\t%f\t%f\n", imu.acc_mps2[0], imu.acc_mps2[1], imu.acc_mps2[2], imu.gyr_rps[0], imu.gyr_rps[1], imu.gyr_rps[2]);
+	HAL_Delay(100);
 }
 /* USER CODE END 4 */
 
