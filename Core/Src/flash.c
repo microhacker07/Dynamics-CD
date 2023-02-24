@@ -58,18 +58,19 @@ void LogRead() {
 
 				for (int log_index = 0; log_index < LOGS_PER_PAGE; log_index++) {
 					uint8_t check = calc_checksum((uint8_t *)(&logs[log_index]), sizeof(LogMessage) - 4);
+					printf("%lu, %f, %f, %f, %f, %f, %f\n",
+													logs[log_index].time_ms,
+													logs[log_index].accel_x,
+													logs[log_index].accel_y,
+													logs[log_index].accel_z,
+													logs[log_index].gyro_x,
+													logs[log_index].gyro_y,
+													logs[log_index].gyro_z
+											);
 					if ((logs[log_index].checksum) == check) {
-						printf("%lu, %f, %f, %f, %f, %f, %f\n",
-								logs[log_index].time_ms,
-								logs[log_index].accel_x,
-								logs[log_index].accel_y,
-								logs[log_index].accel_z,
-								logs[log_index].gyro_x,
-								logs[log_index].gyro_y,
-								logs[log_index].gyro_z
-						);
+
 					} else {
-	//					printf("%u != %u | Checksum doesn't match\n", logs[k].checksum, check);
+//						printf("%u != %u | Checksum doesn't match\n", logs[k].checksum, check);
 						log_index = LOGS_PER_PAGE;
 						k = FLIGHT_FLASH_PAGES_PER_SECTOR;
 						j = FLIGHT_FLASH_SECTORS_PER_FLIGHT;
