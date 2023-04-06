@@ -16,6 +16,8 @@
 uint8_t LOGS_PER_PAGE = 0;
 LogMessage logs[FLIGHT_FLASH_PAGES_PER_SECTOR];
 uint8_t flight = 0;
+uint8_t wipe_flash = 1;
+uint8_t last_wipe_flash = 0;
 uint8_t flag_fullSectors = 0;
 
 void LogInit() {
@@ -25,8 +27,14 @@ void LogInit() {
 
 	// Get the current flight from the flash memory
 	W25qxx_ReadSector(&flight, 0, 0, 1);
+	W25qxx_ReadSector(&last_wipe_flash, 0, 1, 1);
 
-	flight = (flight + 1) % FLIGHT_FLASH_FLIGHTS;
+	if (last_wipe_flash != wipe_flash) {
+		W25qxx_EraseChip();
+		flight = 0;
+	} else {
+		flight = (flight + 1) % FLIGHT_FLASH_FLIGHTS;
+	}
 }
 
 void LogFlightSetup() {
@@ -36,6 +44,7 @@ void LogFlightSetup() {
 	// Erasing sets all bits in Sector/Block to 1.
 	W25qxx_EraseSector(0);
 	W25qxx_WriteSector(&flight, 0, 0, 1);
+	W25qxx_WriteSector(&wipe_flash, 0, 1, 1);
 
 	// Erase all sectors for the current flight selected
 	for (int i = 0; i < FLIGHT_FLASH_SECTORS_PER_FLIGHT; i++) {

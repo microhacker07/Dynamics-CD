@@ -24,7 +24,7 @@
 #include <stdio.h>
 
 #include "BMI088.h"
-//#include "BMP390.h"
+#include "bmp3.h"
 #include "flash.h"
 /* USER CODE END Includes */
 
@@ -53,7 +53,7 @@ PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
 BMI088 imu;
-//BMP390 baro;
+struct bmp3_dev baro;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
