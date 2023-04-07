@@ -48,7 +48,7 @@ void LogFlightSetup() {
 	W25qxx_WriteSector(&flight, 0, 0, 1);
 	W25qxx_WriteSector(&wipe_flash, 0, 1, 1);
 
-	/*
+
 	// Erase all sectors for the current flight selected
 	for (int i = 0; i < FLIGHT_FLASH_SECTORS_PER_FLIGHT; i++) {
 		// Offset 1 sector so that the metadata sector is preserved
@@ -56,7 +56,7 @@ void LogFlightSetup() {
 
 		W25qxx_EraseSector(sector_i);
 	}
-	*/
+
 }
 
 void LogRead() {
@@ -67,13 +67,7 @@ void LogRead() {
 	uint32_t p_flight = 1;
 
 	for (int i = 1; i < FLIGHT_FLASH_PAGE_COUNT; i++) {
-		W25qxx_ReadSector((uint8_t *)logs, i, 0, sizeof(logs));
-
-		/*
-		if ( (i+1)%pages_per_flight == 0 ) {
-			printf("START Flight Recording #%lu ---\n", (i/pages_per_flight) );
-		}
-		*/
+		W25qxx_ReadPage((uint8_t *)logs, i, 0, sizeof(logs));
 
 		for (int j = 0; j < FLIGHT_FLASH_LOGS_PER_PAGE; j++) {
 			uint8_t check = calc_checksum((uint8_t *)(&logs[j]), sizeof(LogMessage) - 4);
